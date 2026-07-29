@@ -1,5 +1,3 @@
-# Syn-Son
-
 ## History of Sonification in Synergetics
 
 A zero-install historical archive, visual score, Web Audio instrument, and deterministic WAV renderer.
