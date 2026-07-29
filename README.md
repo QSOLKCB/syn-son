@@ -1,4 +1,6 @@
-## History of Sonification in Synergetics
+## History of Sonification in Synergetics Lab 
+
+#Syn-Son v1.0.0
 
 A zero-install historical archive, visual score, Web Audio instrument, and deterministic WAV renderer.
 
