@@ -6,7 +6,7 @@ A zero-install historical archive, visual score, Web Audio instrument, and deter
 
 No account, package manager, build step, CDN, cloud runtime, or local server is required.
 
-## What changed in v2.0.0
+## What changed in v1.0.0
 
 The original proof of concept has been rebuilt as a historical sonification instrument rather than a collection of disconnected geometry-to-sound modes.
 
