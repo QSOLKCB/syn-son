@@ -1,353 +1,421 @@
 /**
- * Synergetics primary-source data for the Sonification Lab.
+ * Historical and provenance ledger for Syn-Son.
  *
- * Sources (cited by section number throughout the UI):
- *   R. Buckminster Fuller with E.J. Applewhite,
- *   Synergetics: Explorations in the Geometry of Thinking
- *   (Macmillan, 1975 / 1979). Online edition hosted with permission at
- *   rwgrayprojects.com/synergetics/
+ * This file intentionally separates:
+ *   1. statements present in, or bibliographic facts about, historical sources;
+ *   2. later web preservation and teaching lineages; and
+ *   3. the sonification mappings introduced by this project.
  *
- * Only well-established numerical tables, formulas, and short attributed
- * quotations are embedded. Full prose remains under copyright of the Estate.
+ * It is a classic script rather than an ES module so the complete application
+ * can be opened from file:// without a server, build step, fetch(), or CDN.
  */
+(function exposeArchive(root) {
+  "use strict";
 
-const PRIMARY = Object.freeze({
-  work: "Synergetics: Explorations in the Geometry of Thinking",
-  author: "R. Buckminster Fuller (with E.J. Applewhite)",
-  years: "1975 / 1979",
-  online: "http://www.rwgrayprojects.com/synergetics/",
+  const SOURCE_KINDS = Object.freeze({
+    primary: {
+      label: "Primary text",
+      description: "Fuller/Applewhite text or an archival Fuller lecture transcript.",
+    },
+    institutional: {
+      label: "Institutional record",
+      description: "Bibliographic or historical context from the Buckminster Fuller Institute or Estate.",
+    },
+    legacy: {
+      label: "Legacy web",
+      description: "A historically useful independent teaching page preserved as web archaeology.",
+    },
+    contemporary: {
+      label: "Contemporary project",
+      description: "A recent QSOL-IMC implementation or documentation layer.",
+    },
+    derived: {
+      label: "Derived mapping",
+      description: "An explicit interpretive choice made by this sonification project.",
+    },
+  });
 
-  /**
-   * Definition of the field — Synergetics 200.01 (abridged for lab use).
-   */
-  definition: {
-    text:
-      "A system of mensuration employing 60-degree vectorial coordination comprehensive to both physics and chemistry, and to both arithmetic and geometry, in rational whole numbers.",
-    cite: "200.01",
-  },
+  const SOURCES = Object.freeze([
+    {
+      id: "fuller-222",
+      kind: "primary",
+      year: "1975 / web ed. 1997",
+      title: "Synergetics §§222.00–222.43 · closest-packed shells",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s02/p2000.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s02/p2000.html",
+      note: "Defines 10F² + 2 for VE shell populations and records Fuller's own account that he found the relationship in the late 1930s and published it in 1944.",
+    },
+    {
+      id: "fuller-223",
+      kind: "primary",
+      year: "1975 / web ed. 1997",
+      title: "Synergetics §§223.00–223.80 · prime inherency and energy shape",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s02/p2300.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s02/p2300.html",
+      note: "Contains X = 2NF² + 2, the two kinds of twoness, the primary-system shell equations, the concentric hierarchy, and the heading “Energy Has Shape.”",
+    },
+    {
+      id: "fuller-224",
+      kind: "primary",
+      year: "1975 / web ed. 1997",
+      title: "Synergetics §224 · angular topology",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s02/p2400.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s02/p2400.html",
+      note: "Source trail for the constant 720-degree angular excess used by the Angular Topology movement.",
+    },
+    {
+      id: "fuller-460",
+      kind: "primary",
+      year: "1975 / 1979",
+      title: "Synergetics §§460–465 · jitterbug transformation",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s04/p6000.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s04/p6000.html",
+      note: "Historical source family for the vector-equilibrium contraction commonly called the jitterbug.",
+    },
+    {
+      id: "fuller-528",
+      kind: "primary",
+      year: "1975 / web ed. 1997",
+      title: "Synergetics §528.03 · size, time, and frequency",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s05/p2800.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s05/p2800.html",
+      note: "The primary-text anchor for Fuller's statement that size and time are synonymous and that frequency and size are the same phenomenon.",
+    },
+    {
+      id: "fuller-920",
+      kind: "primary",
+      year: "1979 / web ed. 1997",
+      title: "Synergetics §§910–924 · A/B quantum modules",
+      creator: "R. Buckminster Fuller with E.J. Applewhite",
+      url: "https://www.rwgrayprojects.com/synergetics/s09/p0570.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/s09/p0570.html",
+      note: "Primary-text entry point for A and B modules and the tetrahedral accounting developed in Book IX.",
+    },
+    {
+      id: "bfi-synergetics",
+      kind: "institutional",
+      year: "1975 / 1979",
+      title: "Synergetics · Buckminster Fuller Institute overview",
+      creator: "Buckminster Fuller Institute",
+      url: "https://www.bfi.org/about-fuller/big-ideas/synergetics/",
+      archiveUrl: null,
+      note: "Confirms the two Macmillan volumes, their 1975 and 1979 publication dates, E.J. Applewhite's collaboration, Arthur Loeb's preface, and the later web edition.",
+    },
+    {
+      id: "applewhite-cosmic-fishing",
+      kind: "institutional",
+      year: "1977",
+      title: "Cosmic Fishing · an account of writing Synergetics",
+      creator: "E.J. Applewhite",
+      url: "https://www.bfi.org/resource/cosmic-fishing-an-account-of-writing-synergetics-with-buckminster-fuller/",
+      archiveUrl: null,
+      note: "Bibliographic record for Applewhite's account of the collaboration. The stereo counterpoint in this lab is interpretive; it is not an audio reconstruction of the book.",
+    },
+    {
+      id: "fuller-everything-i-know",
+      kind: "primary",
+      year: "1975 lectures",
+      title: "Everything I Know · Section 11",
+      creator: "R. Buckminster Fuller",
+      url: "https://www.bfi.org/about-fuller/everything-i-know/section-11/",
+      archiveUrl: null,
+      note: "Archival lecture transcript in which Fuller discusses Synergetics, geodesic frequency, Applewhite's minute-by-minute notes, and the arrival of the first printed book.",
+    },
+    {
+      id: "rwgray-web-edition",
+      kind: "legacy",
+      year: "1997–present",
+      title: "R.W. Gray Synergetics web edition",
+      creator: "R.W. Gray Projects / Fuller Estate permission",
+      url: "https://www.rwgrayprojects.com/synergetics/",
+      archiveUrl: "https://web.archive.org/web/*/http://www.rwgrayprojects.com/synergetics/",
+      note: "The linked edition is preserved as a navigable historical object. Syn-Son links to it and does not mirror the copyrighted prose.",
+    },
+    {
+      id: "grunch-modules",
+      kind: "legacy",
+      year: "legacy web",
+      title: "Synergetics modules · preserved teaching page",
+      creator: "Kirby Urner",
+      url: "https://www.grunch.net/synergetics/modules.html",
+      archiveUrl: "https://web.archive.org/web/*/http://www.grunch.net/synergetics/modules.html",
+      note: "Independent pedagogical lineage. Its age and presentation are preserved as provenance rather than silently modernized into a primary source.",
+    },
+    {
+      id: "school-of-tomorrow",
+      kind: "legacy",
+      year: "ongoing",
+      title: "School of Tomorrow repository",
+      creator: "4dsolutions contributors",
+      url: "https://github.com/4dsolutions/School_of_Tomorrow",
+      archiveUrl: null,
+      note: "Independent educational code and notebooks in the wider Synergetics teaching lineage.",
+    },
+    {
+      id: "synergetics-viz",
+      kind: "contemporary",
+      year: "2026",
+      title: "Synergetics Presenter Lab · Hypertext Coda",
+      creator: "Trent Slade / QSOL-IMC",
+      url: "https://qsolkcb.github.io/synergetics-viz/",
+      archiveUrl: "https://github.com/QSOLKCB/synergetics-viz",
+      note: "The visual companion and preservation model for source drawers, lore trails, namespace boundaries, deep links, and browser-native presentation.",
+    },
+    {
+      id: "syn-son",
+      kind: "derived",
+      year: "2026",
+      title: "Syn-Son · History of Sonification in Synergetics",
+      creator: "Trent Slade / QSOL-IMC",
+      url: "https://github.com/QSOLKCB/syn-son",
+      archiveUrl: null,
+      note: "This project. All audible mappings are declared contemporary interpretations unless a source explicitly says otherwise.",
+    },
+  ]);
 
-  quotes: [
+  const ERAS = Object.freeze([
     {
-      text: "Size and time are synonymous. Frequency and size are the same phenomenon.",
-      cite: "528.00",
+      id: "shell-discovery",
+      range: "late 1930s–1944",
+      shortYear: "1930s–44",
+      title: "Counting shells before digital sound",
+      subtitle: "The formula becomes a score only much later",
+      labId: "shells",
+      sourceIds: ["fuller-222", "fuller-everything-i-know"],
+      record:
+        "In §222.43 Fuller says he discovered the closest-packed shell relationship in the late 1930s and published it in 1944. The documented object is a geometric counting rule, not a musical composition.",
+      audible:
+        "Each shell number becomes event density, pitch height, and a spatial ring. Counts remain visible while the audible density is scaled to avoid hundreds of simultaneous tones.",
+      boundary:
+        "X = 10F² + 2 is source material. Turning X into rhythm, pitch, stereo position, and timbre is a 2026 Syn-Son mapping.",
+      formula: "X = 10F² + 2",
+      quote: null,
     },
     {
-      text: "Energy has shape.",
-      cite: "223.80",
+      id: "synergetics-one",
+      range: "1975",
+      shortYear: "1975",
+      title: "Synergetics enters print",
+      subtitle: "A tetrahedral unit of volume becomes audible hierarchy",
+      labId: "hierarchy",
+      sourceIds: ["bfi-synergetics", "fuller-223", "fuller-everything-i-know"],
+      record:
+        "Macmillan published Synergetics in 1975 after Fuller's long development and close collaboration with E.J. Applewhite. The concentric hierarchy accounts volumes relative to a unit tetrahedron.",
+      audible:
+        "Tetravolume is mapped logarithmically to pitch. Small modules sit below the reference; tetrahedron, cube, octahedron, rhombic dodecahedron, and vector equilibrium rise through the register.",
+      boundary:
+        "The volumes and section trail are historical. The logarithmic pitch law and declared 108 Hz root (one quarter of 432 Hz) are project choices, not Fuller-derived tuning.",
+      formula: "tet = 1 · cube = 3 · octa = 4 · VE = 20",
+      quote: "Energy has shape.",
     },
     {
-      text: "Synergy means behavior of whole systems unpredicted by the behavior of their parts taken separately.",
-      cite: "101.01",
+      id: "editorial-counterpoint",
+      range: "1977",
+      shortYear: "1977",
+      title: "Applewhite records the collaboration",
+      subtitle: "Cosmic Fishing as historical counterpoint",
+      labId: "counterpoint",
+      sourceIds: ["applewhite-cosmic-fishing", "bfi-synergetics", "fuller-everything-i-know"],
+      record:
+        "E.J. Applewhite published Cosmic Fishing, an account of writing Synergetics with Fuller. Fuller also credited Applewhite's detailed notes and insistence on cleaner definitions in his 1975 lecture series.",
+      audible:
+        "Two stereo voices exchange a call-and-response pattern. A shared center tone appears whenever the strands reach a common structural count.",
+      boundary:
+        "The collaboration is historical. The left/right musical dialogue is an interpretive memorial device, not a reconstruction of either person's voice.",
+      formula: "two voices · one shared ledger",
+      quote: null,
     },
     {
-      text: "The tetrahedron is the simplest structural system in Universe.",
-      cite: "620.03",
+      id: "synergetics-two",
+      range: "1979",
+      shortYear: "1979",
+      title: "Synergetics 2 expands the field",
+      subtitle: "Frequency, twoness, angular topology, and transformation",
+      labId: "frequency",
+      sourceIds: ["bfi-synergetics", "fuller-223", "fuller-224", "fuller-528"],
+      record:
+        "Synergetics 2 appeared in 1979. Across the combined work, “frequency” often names modular subdivision or shell count rather than acoustic frequency.",
+      audible:
+        "Prime N selects a timbre family, edge frequency F advances the rhythm, and X = 2NF² + 2 selects event density and pitch contour.",
+      boundary:
+        "The application never silently equates Fuller's geometric frequency with Hertz. The conversion to audible frequency is displayed as a separate mapping.",
+      formula: "X = 2NF² + 2 · N ∈ {1,2,3,5}",
+      quote: "Size and time are synonymous. Frequency and size are the same phenomenon.",
     },
     {
-      text: "The vector equilibrium is the true zero reference of energy, the true zero of structural stability.",
-      cite: "430.03 (paraphrase of VE zero reference)",
+      id: "web-edition",
+      range: "1997–present",
+      shortYear: "1997→",
+      title: "The books become navigable web archaeology",
+      subtitle: "Sections, diagrams, hyperlinks, and fragile continuity",
+      labId: "web",
+      sourceIds: ["rwgray-web-edition", "bfi-synergetics"],
+      record:
+        "A posthumous web edition made the two volumes addressable by section and hyperlink. It is historically valuable precisely as a legacy web object.",
+      audible:
+        "Section nodes pulse across a stereo network. Cross-links sound as short connecting tones; archival gaps remain rests rather than being invented away.",
+      boundary:
+        "Syn-Son does not scrape, mirror, or republish the books. It keeps a compact citation ledger and sends readers back to the preserved edition.",
+      formula: "section → node · cross-link → interval · gap → rest",
+      quote: null,
     },
-  ],
+    {
+      id: "teaching-lineage",
+      range: "legacy web era",
+      shortYear: "web lore",
+      title: "Independent teaching lineages",
+      subtitle: "Modules, Quadrays, notebooks, and source caution",
+      labId: "modules",
+      sourceIds: ["fuller-920", "grunch-modules", "school-of-tomorrow"],
+      record:
+        "Independent teachers extended Synergetics through module pages, Quadray explanations, notebooks, models, and code. These are lineages of interpretation, not substitutes for primary definitions.",
+      audible:
+        "A and B modules form distinct ticks and pans. Larger assemblies arrive as cadence markers. Unverified module relations stay muted or explicitly labelled provisional.",
+      boundary:
+        "No exact T/E/S/K mesh is invented. The visual tiles are schematic and the audio encodes documented counts or declared teaching relationships only.",
+      formula: "24 A → unit tetrahedron · A/B voices remain distinct",
+      quote: null,
+    },
+    {
+      id: "hypertext-coda",
+      range: "2026",
+      shortYear: "2026 viz",
+      title: "The Hypertext Coda preservation model",
+      subtitle: "Visual scenes gain lore trails and provenance drawers",
+      labId: "jitterbug",
+      sourceIds: ["synergetics-viz", "fuller-460"],
+      record:
+        "The Synergetics Presenter Lab joined live geometry to historical context, source-status labels, deep links, capture, and independent-work boundaries.",
+      audible:
+        "The jitterbug path becomes a continuous pitch and brightness morph while fixed cadences mark named structural stations.",
+      boundary:
+        "The historical transformation is source-linked. The interpolation curve, tempo, tuning, and sound design are contemporary and schematic.",
+      formula: "VE → contraction → octa/tet station markers",
+      quote: null,
+    },
+    {
+      id: "syn-son-2026",
+      range: "2026",
+      shortYear: "2026 audio",
+      title: "Syn-Son makes the boundary audible",
+      subtitle: "One deterministic score drives Web Audio and WAV",
+      labId: "coda",
+      sourceIds: ["syn-son", "synergetics-viz", "fuller-222", "fuller-223", "fuller-528"],
+      record:
+        "Syn-Son is a new, independent QSOL-IMC instrument. Its historical claim is modest: the source trail existed; this particular audible mapping did not.",
+      audible:
+        "A deterministic coda combines shell counts, hierarchy intervals, editorial counterpoint, modules, web-link pulses, and transformation markers.",
+      boundary:
+        "Every WAV includes a downloadable manifest identifying the source IDs, parameters, mapping version, seed, and declared 432 Hz reference.",
+      formula: "same event score → live Web Audio + offline WAV",
+      quote: null,
+    },
+  ]);
 
-  /**
-   * Concentric hierarchy — tetravolume = 1 when the regular tetrahedron
-   * of unit edge is volumetric unity. Canonical whole-number volumes
-   * from Fuller's tetrahedral accounting (see Wikipedia summary of
-   * Synergetics tables 982 / 986 and Sec. 223.66).
-   */
-  hierarchy: [
+  const MAPPINGS = Object.freeze([
     {
-      id: "a-mod",
-      name: "A Quanta Module",
-      short: "A",
-      vol: 1 / 24,
-      a: 1,
-      b: 0,
-      notes: "Asymmetric tetrahedral wedge; 24 fill the unit tetrahedron.",
-      cite: "920.00–924.20",
-      color: "#e8a0bf",
-      prime: null,
+      sourceQuantity: "Tetravolume",
+      audioParameter: "Pitch ratio",
+      rule: "ratio = 2^(0.45 × log₂(volume))",
+      status: "derived",
+      sourceIds: ["fuller-223"],
     },
     {
-      id: "b-mod",
-      name: "B Quanta Module",
-      short: "B",
-      vol: 1 / 24,
-      a: 0,
-      b: 1,
-      notes: "Complement of A; same volume, different edge lengths.",
-      cite: "920.00–924.20",
-      color: "#c084fc",
-      prime: null,
+      sourceQuantity: "Edge frequency F",
+      audioParameter: "Rhythmic position",
+      rule: "successive F values advance equal beat cells",
+      status: "derived",
+      sourceIds: ["fuller-222", "fuller-223"],
     },
     {
-      id: "mite",
-      name: "MITE",
-      short: "MITE",
-      vol: 1 / 8,
-      a: 2,
-      b: 1,
-      notes: "Minimum tetrahedron (space-filler): 2A + 1B.",
-      cite: "950.00",
-      color: "#a78bfa",
-      prime: null,
+      sourceQuantity: "Shell population X",
+      audioParameter: "Density and register",
+      rule: "density is scaled; log₂(X) shapes pitch",
+      status: "derived",
+      sourceIds: ["fuller-222"],
     },
     {
-      id: "tet",
-      name: "Tetrahedron",
-      short: "Tet",
-      vol: 1,
-      a: 24,
-      b: 0,
-      V: 4,
-      E: 6,
-      F: 4,
-      prime: 1,
-      shell: (F) => 2 * F * F + 2,
-      notes: "Unit of volume; minimum system (4 event foci).",
-      cite: "223.20, 620.03",
-      color: "#60a5fa",
+      sourceQuantity: "Prime family N",
+      audioParameter: "Oscillator family",
+      rule: "1 sine · 2 triangle · 3 square · 5 sawtooth",
+      status: "derived",
+      sourceIds: ["fuller-223"],
     },
     {
-      id: "coupler",
-      name: "Coupler",
-      short: "Cpl",
-      vol: 1,
-      a: 16,
-      b: 8,
-      notes: "Oblate octahedron; allspace-filling pair half.",
-      cite: "954.00",
-      color: "#38bdf8",
-      prime: null,
+      sourceQuantity: "Additive / balanced twoness",
+      audioParameter: "Stereo poles / shared center",
+      rule: "opposed pans resolve to a center cadence",
+      status: "derived",
+      sourceIds: ["fuller-223"],
     },
     {
-      id: "cube",
-      name: "Duo-Tet Cube",
-      short: "Cube",
-      vol: 3,
-      a: 48,
-      b: 24,
-      V: 8,
-      E: 12,
-      F: 6,
-      prime: 3,
-      shell: (F) => 6 * F * F + 2,
-      notes: "Cube of edge √2 relative to unit tetra; volume 3.",
-      cite: "223.20, 990.01",
-      color: "#34d399",
+      sourceQuantity: "A / B module identity",
+      audioParameter: "Tick timbre and pan",
+      rule: "A left triangle · B right square",
+      status: "derived",
+      sourceIds: ["fuller-920", "grunch-modules"],
     },
     {
-      id: "octa",
-      name: "Octahedron",
-      short: "Octa",
-      vol: 4,
-      a: 48,
-      b: 48,
-      V: 6,
-      E: 12,
-      F: 8,
-      prime: 2,
-      shell: (F) => 4 * F * F + 2,
-      notes: "Complements tetrahedra in the isotropic vector matrix.",
-      cite: "223.20, 415.00",
-      color: "#4ade80",
+      sourceQuantity: "Web section link",
+      audioParameter: "Short connecting interval",
+      rule: "node index sets time; linked node sets pitch",
+      status: "derived",
+      sourceIds: ["rwgray-web-edition"],
     },
     {
-      id: "rt5",
-      name: "Rhombic Triacontahedron",
-      short: "RT",
-      vol: 5,
-      a: 0,
-      b: 0,
-      notes: "120 T-modules; radius ≈ unit vector.",
-      cite: "986.400, 982.00",
-      color: "#fbbf24",
-      prime: null,
+      sourceQuantity: "Reference tuning",
+      audioParameter: "Root frequency",
+      rule: "108 Hz default = declared quarter of 432 Hz",
+      status: "derived",
+      sourceIds: ["syn-son"],
     },
-    {
-      id: "rd",
-      name: "Rhombic Dodecahedron",
-      short: "RD",
-      vol: 6,
-      a: 96,
-      b: 48,
-      V: 14,
-      E: 24,
-      F: 12,
-      notes: "Domain of one sphere in CCP packing; dual of VE.",
-      cite: "223.20, 426.00",
-      color: "#fb923c",
-      prime: null,
-    },
-    {
-      id: "icosa",
-      name: "Icosahedron",
-      short: "Icosa",
-      // 5 * sqrt(2) * phi^2  (edge = tetra edge)
-      vol: 5 * Math.SQRT2 * Math.pow((1 + Math.sqrt(5)) / 2, 2),
-      V: 12,
-      E: 30,
-      F: 20,
-      prime: 5,
-      shell: (F) => 10 * F * F + 2,
-      notes: "Jitterbug phase between VE and octa; φ-related volume.",
-      cite: "460.00, 905.00",
-      color: "#f472b6",
-    },
-    {
-      id: "ve",
-      name: "Vector Equilibrium",
-      short: "VE",
-      vol: 20,
-      a: 336,
-      b: 144,
-      V: 12,
-      E: 24,
-      F: 14, // 8 tri + 6 square
-      prime: 5,
-      shell: (F) => 10 * F * F + 2,
-      notes: "Cuboctahedron of unit radius = unit edge. Zero reference of energy.",
-      cite: "223.20, 430.00, 440.00",
-      color: "#f87171",
-    },
-    {
-      id: "cube2f",
-      name: "2-Frequency Cube",
-      short: "2F Cub",
-      vol: 24,
-      a: 384,
-      b: 192,
-      notes: "8 × cube volume 3; frequency scaling of volume as F³.",
-      cite: "990.00",
-      color: "#94a3b8",
-      prime: null,
-    },
-  ],
+  ]);
 
-  /**
-   * Equation of Prime Number Inherency — Synergetics 223.03
-   *   X = 2 N F² + 2
-   * N ∈ {1,2,3,5}; F = edge frequency.
-   */
-  primeInherency: {
-    formula: "X = 2 N F² + 2",
-    cite: "223.03",
-    N: {
-      1: { name: "Tetrahedron", label: "N=1" },
-      2: { name: "Octahedron", label: "N=2" },
-      3: { name: "Cube (triangulated)", label: "N=3" },
-      5: { name: "VE / Icosahedron", label: "N=5" },
+  const VOLUMES = Object.freeze([
+    { id: "a", name: "A module", volume: 1 / 24, cite: "Book IX", color: "#a9b8a0" },
+    { id: "mite", name: "MITE", volume: 1 / 8, cite: "§950 family", color: "#bcc68e" },
+    { id: "tet", name: "Tetrahedron", volume: 1, cite: "§§221–223", color: "#d5bd83" },
+    { id: "cube", name: "Duo-tet cube", volume: 3, cite: "§223.20", color: "#c69b62" },
+    { id: "octa", name: "Octahedron", volume: 4, cite: "§223.20", color: "#b77d52" },
+    { id: "rt", name: "Rhombic triacontahedron", volume: 5, cite: "Book IX", color: "#9fbca6" },
+    { id: "rd", name: "Rhombic dodecahedron", volume: 6, cite: "hierarchy tables", color: "#7fa39d" },
+    { id: "ve", name: "Vector equilibrium", volume: 20, cite: "§222.30", color: "#d78a57" },
+  ]);
+
+  function sourceById(id) {
+    return SOURCES.find((source) => source.id === id) || null;
+  }
+
+  function eraById(id) {
+    return ERAS.find((era) => era.id === id) || null;
+  }
+
+  const ARCHIVE = Object.freeze({
+    version: "2.0.0",
+    title: "History of Sonification in Synergetics",
+    sourceKinds: SOURCE_KINDS,
+    sources: SOURCES,
+    eras: ERAS,
+    mappings: MAPPINGS,
+    volumes: VOLUMES,
+    phi: (1 + Math.sqrt(5)) / 2,
+    sourceById,
+    eraById,
+    shellPopulation: (frequency, prime = 5) => 2 * prime * frequency * frequency + 2,
+    veShellPopulation: (frequency) => 10 * frequency * frequency + 2,
+    cumulativeVePopulation: (frequency) => {
+      if (frequency <= 0) return 1;
+      return 1 + (10 * frequency * (frequency + 1) * (2 * frequency + 1)) / 6 + 2 * frequency;
     },
-    relativeAbundance: {
-      rule: "1 nonpolar vertex : 2 faces : 3 edges  (+ additive polar 2)",
-      cite: "223.04, 223.18",
-    },
-  },
+  });
 
-  /**
-   * Closest-packed sphere shells of the vector equilibrium (12-around-1).
-   * Outer layer: 10 F² + 2  (Sec. 223.21).
-   * Cumulative nuclear totals for F-frequency VE:
-   *   T(F) = (10 F³ + 15 F² + 11 F) / 3 + 1   wait — standard formula:
-   *   For FCC/VE: layer L has 10 L² + 2 for L≥1, nucleus 1.
-   *   Cumulative to frequency F: 1 + Σ_{L=1..F} (10 L² + 2)
-   *     = 1 + 10·F(F+1)(2F+1)/6 + 2F
-   *     = (10 F³ + 15 F² + 11 F)/3 + 1
-   */
-  spherePacking: {
-    cite: "223.20–223.21, 415.00, 970.00",
-    nucleus: 1,
-    layer: (F) => (F <= 0 ? 0 : 10 * F * F + 2),
-    cumulative: (F) => {
-      if (F <= 0) return 1;
-      // 1 + sum_{k=1..F} (10k²+2)
-      return 1 + (10 * F * (F + 1) * (2 * F + 1)) / 6 + 2 * F;
-    },
-    // Classic sequence often cited: 1, 12, 42, 92, 162, 252, ...
-    knownLayers: [0, 12, 42, 92, 162, 252, 362],
-  },
-
-  /**
-   * Angular Topology — Synergetics 224.00
-   *   nS + 720° = 360° × X
-   * where S = sum of face angles at all vertexes, X = vertex count,
-   * and 720° is the angular excess of the tetrahedron (one "tetravolume" of angle).
-   */
-  angularTopology: {
-    formula: "nS + 720° = 360° × X",
-    cite: "224.00",
-    tetraAngleSum: 720, // degrees — sum of face angles of one tetrahedron
-    systems: [
-      { name: "Tetrahedron", X: 4, faceAngleSum: 720, excess: 720 },
-      { name: "Octahedron", X: 6, faceAngleSum: 1440, excess: 720 },
-      { name: "Icosahedron", X: 12, faceAngleSum: 3600, excess: 720 },
-      { name: "Cube (triangulated)", X: 8, faceAngleSum: 2160, excess: 720 },
-    ],
-  },
-
-  /**
-   * Jitterbug transformation stages (VE contraction path).
-   * Edge length constant; radius shrinks. Volumes relative to unit-edge VE = 20.
-   * Stages from Synergetics 460 / jitterbug literature.
-   */
-  jitterbug: {
-    cite: "460.00–465.00",
-    stages: [
-      { name: "Vector Equilibrium", t: 0.0, vol: 20, faces: "8△ + 6□" },
-      { name: "Icosahedral phase", t: 0.35, vol: 18.51, faces: "20△" },
-      { name: "Octahedron", t: 0.7, vol: 4, faces: "8△" },
-      { name: "Tetrahedron (fold)", t: 1.0, vol: 1, faces: "4△" },
-    ],
-  },
-
-  /**
-   * IVM (Isotropic Vector Matrix) — 60° coordination.
-   * Six edges of unit tetra appear as face-diagonals of the cube in XYZ.
-   */
-  ivm: {
-    cite: "420.00, 986.203",
-    angle: 60,
-    note: "Linearly referenced to unit-vector edges of the regular tetrahedron.",
-  },
-
-  /**
-   * Chord factors for unit-radius great-circle polyhedra (selected).
-   * Chord factor = 2 sin(θ/2) for central angle θ (radians).
-   * Used in geodesic / spherical polyhedra work (Synergetics Book IX / geodesics).
-   */
-  chordFactors: {
-    cite: "905.00, geodesic tables",
-    // central angles (deg) for common arcs on unit sphere
-    arcs: [
-      { name: "VE radial = edge", deg: 60, note: "radius = edge in VE" },
-      { name: "Tetra dihedral chord", deg: 70.528779, note: "arccos(1/3)" },
-      { name: "Octa face diagonal", deg: 90, note: "square face of VE" },
-      { name: "Icosa long arc", deg: 63.434949, note: "arctan(2)" },
-      { name: "Great circle half", deg: 180, note: "diameter" },
-    ],
-    chord: (deg) => 2 * Math.sin((deg * Math.PI) / 360),
-  },
-
-  /**
-   * Two kinds of twoness — for dual-voice sonification.
-   */
-  twoness: {
-    cite: "223.05–223.12",
-    additive: "Polar vertexes of spin axis (+2)",
-    multiplicative: "Insideness/outsideness, convex/concave (×2)",
-  },
-});
-
-/** Helpers */
-PRIMARY.volumeToMidi = function (vol, rootMidi = 48) {
-  // Map tetravolume logarithmically onto pitch: each doubling of volume = +12 semitones / k
-  // vol=1 → root; vol=20 → higher
-  if (vol <= 0) return rootMidi;
-  return rootMidi + 12 * (Math.log(vol) / Math.log(2)) * 0.55;
-};
-
-PRIMARY.shellSpheres = function (N, F) {
-  return 2 * N * F * F + 2;
-};
-
-PRIMARY.phi = (1 + Math.sqrt(5)) / 2;
+  root.SYNERGETICS_ARCHIVE = ARCHIVE;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = ARCHIVE;
+  }
+})(typeof window !== "undefined" ? window : globalThis);

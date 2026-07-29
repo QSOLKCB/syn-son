@@ -1,192 +1,296 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Synergetics Sonification Lab</title>
-    <meta
-      name="description"
-      content="Offline sonification laboratory for Buckminster Fuller's Synergetics — tetravolumes, frequency shells, vector equilibrium, and more mapped to sound from primary sources."
-    />
-    <link rel="stylesheet" href="css/lab.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="brand">
-        <h1>Synergetics <span>Sonification Lab</span></h1>
-        <p id="source-meta">R. Buckminster Fuller — primary geometric sources</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="description"
+    content="A server-free historical sonification instrument tracing Synergetics from geometric source texts and web archaeology to deterministic Web Audio and WAV rendering."
+  >
+  <meta name="theme-color" content="#121514">
+  <title>Syn-Son · History of Sonification in Synergetics</title>
+  <link rel="stylesheet" href="css/lab.css">
+</head>
+<body>
+  <a class="skip-link" href="#workbench">Skip to the instrument</a>
+
+  <header class="topbar">
+    <div class="identity">
+      <p class="eyebrow">Independent QSOL-IMC archive instrument · source-cautious by design</p>
+      <div class="title-row">
+        <h1>History of Sonification <span>in Synergetics</span></h1>
+        <span class="version-badge">v2.0.0 · Archive Score</span>
       </div>
-      <div class="header-actions">
-        <span class="kbd">Space</span>
-        <span style="color: var(--muted); font-size: 0.8rem">play / stop</span>
-      </div>
-    </header>
-
-    <div class="layout">
-      <!-- Left: lab modes -->
-      <aside class="panel">
-        <h2>Laboratories</h2>
-        <nav id="lab-nav" aria-label="Sonification labs"></nav>
-
-        <div style="margin-top: 1.25rem">
-          <h2>Core formulas</h2>
-          <div class="formula">
-            X = 2 N F² + 2
-            <small>§223.03 · N ∈ {1,2,3,5} · F = edge frequency</small>
-          </div>
-          <div class="formula">
-            Layer = 10 F² + 2
-            <small>§223.21 · VE closest-packed shell</small>
-          </div>
-          <div class="formula">
-            nS + 720° = 360° X
-            <small>§224.00 · Angular topology</small>
-          </div>
-          <div class="formula">
-            Tet = 1 · Cube = 3 · Octa = 4 · RD = 6 · VE = 20
-            <small>§223.66 / concentric hierarchy volumes</small>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Center: stage -->
-      <main class="panel">
-        <div class="stage-header">
-          <h2 id="lab-title">Concentric Hierarchy</h2>
-          <p class="subtitle" id="lab-subtitle">Tetravolumes → pitch &amp; chord</p>
-          <p class="blurb" id="lab-blurb"></p>
-          <p class="cite" id="lab-cite"></p>
-        </div>
-
-        <div class="viz-wrap">
-          <canvas id="viz" aria-label="Geometry visualization"></canvas>
-        </div>
-        <div class="wave-wrap">
-          <canvas id="wave" aria-label="Waveform and spectrum"></canvas>
-        </div>
-
-        <div class="status" id="status-label" role="status">Ready — press Play</div>
-
-        <div class="controls">
-          <div class="transport">
-            <button type="button" class="btn btn-primary" id="btn-play">Play</button>
-            <button type="button" class="btn" id="btn-stop">Stop</button>
-            <button type="button" class="btn btn-ghost" id="btn-strike" title="One-shot random hierarchy strike">
-              Strike
-            </button>
-          </div>
-
-          <label class="ctrl">
-            <span>Tempo <em id="bpm-val">90</em> bpm</span>
-            <input type="range" id="bpm" min="40" max="160" value="90" />
-          </label>
-
-          <label class="ctrl">
-            <span>Gain <em id="gain-val">0.45</em></span>
-            <input type="range" id="gain" min="0" max="1" step="0.01" value="0.45" />
-          </label>
-
-          <label class="ctrl">
-            <span>Root <em id="root-hz-val">110</em> Hz</span>
-            <input type="range" id="root-hz" min="55" max="220" step="1" value="110" />
-          </label>
-
-          <label class="ctrl">
-            <span>Step</span>
-            <select id="step-div">
-              <option value="0.5">½ beat</option>
-              <option value="0.25" selected>¼ beat</option>
-              <option value="0.125">⅛ beat</option>
-              <option value="1">1 beat</option>
-            </select>
-          </label>
-
-          <label class="ctrl">
-            <span>Tuning</span>
-            <select id="tuning">
-              <option value="just60" selected>Just / 60° ratios</option>
-              <option value="equal">Equal temperament</option>
-            </select>
-          </label>
-
-          <div id="extra-controls"></div>
-        </div>
-      </main>
-
-      <!-- Right: sources -->
-      <aside class="panel">
-        <h2>From the source</h2>
-        <div class="quote-box">
-          <blockquote id="quote-text">
-            “Size and time are synonymous. Frequency and size are the same phenomenon.”
-          </blockquote>
-          <footer id="quote-cite">— Synergetics §528.00</footer>
-        </div>
-
-        <div class="def-box">
-          <strong>Definition §200.01</strong>
-          A system of mensuration employing 60-degree vectorial coordination comprehensive
-          to both physics and chemistry, and to both arithmetic and geometry, in rational
-          whole numbers.
-        </div>
-
-        <h2>How sonification maps</h2>
-        <ul style="margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.82rem">
-          <li><strong style="color: var(--text)">Volume → pitch</strong> — log₂(tetravolume) scales Hz from unit tet</li>
-          <li><strong style="color: var(--text)">Frequency F → tempo layer</strong> — shells step outward</li>
-          <li><strong style="color: var(--text)">Prime N → timbre family</strong> — 1 tet · 2 octa · 3 cube · 5 VE</li>
-          <li><strong style="color: var(--text)">720° excess → spectral marker</strong> — angular topology constant</li>
-          <li><strong style="color: var(--text)">A/B modules → 1/24 ticks</strong> — quanta assemble wholes</li>
-          <li><strong style="color: var(--text)">Chord factor → interval</strong> — 2 sin(θ/2) as frequency ratio</li>
-        </ul>
-
-        <div class="formula" style="margin-top: 1rem">
-          Offline · Web Audio API · no CDN
-          <small>Open index.html in any modern browser</small>
-        </div>
-      </aside>
+      <p class="lede">
+        A navigable history of how geometric frequency, shell counts, tetravolume,
+        modules, twoness, transformation, and preserved web lineages can become audible.
+      </p>
     </div>
+    <div class="top-actions" aria-label="Global actions">
+      <button id="guidedButton" type="button" aria-pressed="false">Guided history</button>
+      <button id="captureButton" type="button">Capture PNG</button>
+      <button id="copyLinkButton" type="button">Copy state link</button>
+      <button id="presentButton" type="button" aria-pressed="false">Presenter mode</button>
+    </div>
+  </header>
 
-    <section class="table-section">
-      <div class="panel">
-        <h2>Concentric hierarchy (tetra = volumetric unity)</h2>
+  <main>
+    <section class="boundary-banner" aria-label="Historical boundary">
+      <strong>The crucial boundary:</strong>
+      Fuller and Applewhite documented geometric meanings of frequency, size, time,
+      energy, topology, and modules. They did not document this Web Audio composition.
+      Every audible conversion is labelled as a contemporary mapping.
+    </section>
+
+    <section class="status-strip" aria-label="Runtime status">
+      <span class="status-pill" data-state="good">Direct file:// opening</span>
+      <span class="status-pill" data-state="good">No server · no fetch · no CDN</span>
+      <span id="audioCapability" class="status-pill">Web Audio: checking</span>
+      <span id="wavCapability" class="status-pill">Offline WAV: checking</span>
+      <span class="status-pill">Declared 432 Hz reference</span>
+      <span class="status-pill">Deterministic score</span>
+    </section>
+
+    <section class="timeline-section" aria-labelledby="timelineHeading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Historical navigator</p>
+          <h2 id="timelineHeading">From counted shells to rendered WAV</h2>
+        </div>
+        <p>
+          Select an era. The archive record, audible mapping, source status,
+          visualization, and deterministic score change together.
+        </p>
+      </div>
+      <nav id="timeline" class="timeline" aria-label="Synergetics sonification history"></nav>
+    </section>
+
+    <section id="guidedPanel" class="guided-panel card" hidden aria-live="polite">
+      <div>
+        <p class="eyebrow">Guided history</p>
+        <h2 id="guidedTitle">Step</h2>
+        <p id="guidedSummary"></p>
+      </div>
+      <div class="guided-grid">
+        <div>
+          <strong>Historical record</strong>
+          <p id="guidedRecord"></p>
+        </div>
+        <div>
+          <strong>Listen for</strong>
+          <p id="guidedListen"></p>
+        </div>
+        <div>
+          <strong>Do not collapse</strong>
+          <p id="guidedBoundary"></p>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="guidedPrevious" type="button">Previous</button>
+        <button id="guidedNext" type="button">Next</button>
+        <button id="guidedExit" type="button">Exit tour</button>
+      </div>
+    </section>
+
+    <section id="workbench" class="workbench">
+      <div class="instrument card">
+        <div class="stage-wrap">
+          <canvas
+            id="stage"
+            width="1280"
+            height="760"
+            aria-label="Animated visual score for the selected historical movement"
+          ></canvas>
+          <div class="stage-badges">
+            <span id="movementBadge">Movement</span>
+            <span id="eraBadge">Era</span>
+            <span id="sourceBadge">Sources</span>
+          </div>
+          <div class="stage-help">Drag to orbit · Space play/stop · [ ] history · W render WAV · C capture</div>
+        </div>
+
+        <div class="wave-wrap">
+          <canvas id="wave" width="1280" height="130" aria-label="Live waveform and spectrum"></canvas>
+          <div class="wave-labels">
+            <span>LIVE SIGNAL</span>
+            <span id="fingerprintLabel">score fingerprint</span>
+          </div>
+        </div>
+
+        <div id="transportStatus" class="transport-status" role="status">
+          Ready. Playback begins only after a user gesture.
+        </div>
+
+        <div class="transport" aria-label="Transport and export">
+          <button id="playButton" class="primary" type="button">Play movement</button>
+          <button id="stopButton" type="button">Stop</button>
+          <button id="renderButton" class="render" type="button">Render WAV</button>
+          <button id="manifestButton" type="button">Export manifest</button>
+        </div>
+
+        <div class="control-grid">
+          <label>
+            <span>Tempo <output id="bpmValue">96</output> BPM</span>
+            <input id="bpm" type="range" min="48" max="160" step="1" value="96">
+          </label>
+          <label>
+            <span>Root <output id="rootHzValue">108</output> Hz</span>
+            <input id="rootHz" type="range" min="54" max="216" step="1" value="108">
+          </label>
+          <label>
+            <span>Gain <output id="gainValue">0.72</output></span>
+            <input id="gain" type="range" min="0" max="1" step="0.01" value="0.72">
+          </label>
+          <label>
+            <span>Detail <output id="complexityValue">2</output></span>
+            <input id="complexity" type="range" min="1" max="4" step="1" value="2">
+          </label>
+          <label>
+            <span>Maximum F <output id="maxFrequencyValue">5</output></span>
+            <input id="maxFrequency" type="range" min="2" max="8" step="1" value="5">
+          </label>
+          <label>
+            <span>Deterministic seed</span>
+            <input id="seed" type="number" min="0" max="4294967295" step="1" value="19751979">
+          </label>
+          <label>
+            <span>WAV length</span>
+            <select id="renderBars">
+              <option value="4">4 bars</option>
+              <option value="8" selected>8 bars</option>
+              <option value="16">16 bars</option>
+              <option value="32">32 bars</option>
+            </select>
+          </label>
+          <label>
+            <span>Sample rate</span>
+            <select id="sampleRate">
+              <option value="44100">44.1 kHz</option>
+              <option value="48000" selected>48 kHz</option>
+            </select>
+          </label>
+          <label class="checkbox-label">
+            <input id="normalize" type="checkbox" checked>
+            <span>Normalize WAV peak</span>
+          </label>
+        </div>
+        <div id="renderStatus" class="render-status" aria-live="polite">
+          WAV export uses OfflineAudioContext in this page. Nothing is uploaded.
+        </div>
+      </div>
+
+      <aside class="history-panel card" aria-live="polite">
+        <p id="historyRange" class="eyebrow">Era</p>
+        <h2 id="historyTitle">Movement title</h2>
+        <p id="historySubtitle" class="history-subtitle"></p>
+
+        <section>
+          <h3>Historical record</h3>
+          <p id="historicalRecord"></p>
+        </section>
+        <section>
+          <h3>What you hear</h3>
+          <p id="audibleMapping"></p>
+        </section>
+        <section class="boundary-card">
+          <h3>Interpretive boundary</h3>
+          <p id="boundaryText"></p>
+        </section>
+        <div id="formulaText" class="formula"></div>
+
+        <details class="source-drawer" open>
+          <summary>Sources, lore trail, and provenance</summary>
+          <div id="sourceList"></div>
+        </details>
+      </aside>
+    </section>
+
+    <section class="score-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Deterministic event ledger</p>
+          <h2>The score before it becomes sound</h2>
+        </div>
+        <p>
+          The first events are shown exactly as supplied to both the live and
+          offline renderers. Reusing the same parameters and seed reproduces the score.
+        </p>
+      </div>
+      <div class="table-wrap card">
         <table>
           <thead>
             <tr>
-              <th>System</th>
-              <th>Tetravolume</th>
-              <th>V</th>
-              <th>E</th>
-              <th>Faces</th>
-              <th>Prime N</th>
-              <th>Source</th>
+              <th>Beat</th>
+              <th>Event</th>
+              <th>Datum</th>
+              <th>Hz</th>
+              <th>Wave</th>
+              <th>Pan</th>
+              <th>Source ID</th>
             </tr>
           </thead>
-          <tbody id="hierarchy-body"></tbody>
+          <tbody id="scoreBody"></tbody>
         </table>
       </div>
     </section>
 
-    <footer class="site-footer">
-      <p>
-        Geometric constants, formulas, and short attributed quotations from
-        <em>Synergetics: Explorations in the Geometry of Thinking</em> by R. Buckminster Fuller
-        (with E.J. Applewhite), Macmillan 1975/1979. Section numbers refer to the online edition
-        at
-        <a href="http://www.rwgrayprojects.com/synergetics/" rel="noopener">rwgrayprojects.com/synergetics</a>
-        (hosted with permission of the Estate). This lab is an educational sonification instrument —
-        not a substitute for the primary text. Full prose remains under copyright.
-      </p>
-      <p style="margin-top: 0.5rem">
-        Sonification design: tetravolume → log pitch · X=2NF²+2 → shell rhythms · jitterbug t → filter &amp; dual voice ·
-        A/B 1/24 → quanta · angular 720° → beats · chord factors → intervals.
-      </p>
-    </footer>
+    <section class="mapping-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Mapping ledger</p>
+          <h2>Source quantity is not audio parameter</h2>
+        </div>
+        <p>
+          The middle column is an authored bridge. Keeping that bridge visible
+          prevents metaphor from masquerading as historical or physical equivalence.
+        </p>
+      </div>
+      <div id="mappingGrid" class="mapping-grid"></div>
+    </section>
 
-    <script src="js/primary-sources.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/geometry.js"></script>
-    <script src="js/labs.js"></script>
-    <script src="js/app.js"></script>
-  </body>
+    <section class="archive-note card">
+      <div>
+        <p class="eyebrow">Preservation posture</p>
+        <h2>Keep the archaeology; label the invention</h2>
+      </div>
+      <div class="archive-columns">
+        <p>
+          The project links to the R.W. Gray web edition, institutional records,
+          archived lecture material, and independent teaching pages. It does not
+          republish the books or silently clean legacy web history into a new authority.
+        </p>
+        <p>
+          “Frequency” is namespace-sensitive. In the source it often means edge
+          subdivision or shell count. Hertz enters only at the declared sonification
+          layer. Likewise, 432 Hz is a chosen reference, not a Synergetics theorem.
+        </p>
+        <p>
+          The visual geometry is a schematic score display. Exact source mathematics,
+          derived mappings, lore, and provisional relations remain separately labelled.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Independent work by Trent Slade / QSOL-IMC. Built to complement—not replace—
+      primary texts, physical models, preserved web archaeology, and human teaching.
+    </p>
+    <p>
+      <a href="https://qsolkcb.github.io/synergetics-viz/">Presenter Lab</a>
+      · <a href="https://github.com/QSOLKCB/synergetics">Research atlas</a>
+      · <a href="https://www.rwgrayprojects.com/synergetics/">Synergetics web edition</a>
+      · <a href="https://github.com/QSOLKCB/syn-son">Source code</a>
+    </p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/primary-sources.js"></script>
+  <script src="js/labs.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/geometry.js"></script>
+  <script src="js/app.js"></script>
+</body>
 </html>

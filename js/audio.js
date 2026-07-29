@@ -1,334 +1,381 @@
 /**
- * Offline Web Audio sonification engine for the Synergetics lab.
- * No external samples — pure oscillators, noise, and envelopes.
+ * Shared Web Audio synthesis and server-free WAV export.
+ *
+ * Live playback and OfflineAudioContext rendering both consume the exact same
+ * deterministic event score produced by js/labs.js.
  */
+(function exposeAudio(root) {
+  "use strict";
 
-class SynergeticsAudio {
-  constructor() {
-    this.ctx = null;
-    this.master = null;
-    this.reverb = null;
-    this.analyser = null;
-    this.running = false;
-    this.bpm = 90;
-    this.rootHz = 110; // A2 — "vector unit" base frequency
-    this.tuning = "just60"; // just intervals from 60° / tetrahedral ratios
-    this.voices = [];
-    this.schedId = null;
-    this.nextNoteTime = 0;
-    this.lookAhead = 0.1;
-    this.scheduleAhead = 0.2;
-    this.step = 0;
-    this.mode = null;
-    this.params = {};
-    this.onStep = null;
-    this.gain = 0.45;
+  const AudioContextCtor =
+    typeof window !== "undefined"
+      ? window.AudioContext || window.webkitAudioContext
+      : null;
+  const OfflineAudioContextCtor =
+    typeof window !== "undefined"
+      ? window.OfflineAudioContext || window.webkitOfflineAudioContext
+      : null;
+
+  function clamp(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, value));
   }
 
-  async init() {
-    if (this.ctx) return;
-    const AC = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AC();
-    this.master = this.ctx.createGain();
-    this.master.gain.value = this.gain;
-
-    this.analyser = this.ctx.createAnalyser();
-    this.analyser.fftSize = 2048;
-    this.analyser.smoothingTimeConstant = 0.8;
-
-    // Simple convolver-free "space" — delay + feedback
-    const delay = this.ctx.createDelay(1.0);
-    delay.delayTime.value = 0.22;
-    const fb = this.ctx.createGain();
-    fb.gain.value = 0.28;
-    const wet = this.ctx.createGain();
-    wet.gain.value = 0.22;
-    delay.connect(fb);
-    fb.connect(delay);
-    delay.connect(wet);
-    wet.connect(this.analyser);
-    this.master.connect(delay);
-    this.master.connect(this.analyser);
-    this.analyser.connect(this.ctx.destination);
-    this.reverb = { delay, fb, wet };
+  function beatsToSeconds(beats, bpm) {
+    return (beats * 60) / bpm;
   }
 
-  async resume() {
-    await this.init();
-    if (this.ctx.state === "suspended") await this.ctx.resume();
-  }
-
-  setGain(g) {
-    this.gain = g;
-    if (this.master) this.master.gain.setTargetAtTime(g, this.ctx.currentTime, 0.05);
-  }
-
-  setBpm(bpm) {
-    this.bpm = bpm;
-  }
-
-  setRootHz(hz) {
-    this.rootHz = hz;
-  }
-
-  /** Frequency ratios from synergetic / 60° coordination */
-  ratio(interval) {
-    const just60 = {
-      // Built from small integers that appear in Fuller's hierarchy
-      // and pure 3:2, 4:3, 5:4, plus √2, φ related
-      unison: 1,
-      minor2: 16 / 15,
-      major2: 9 / 8,
-      minor3: 6 / 5,
-      major3: 5 / 4,
-      fourth: 4 / 3,
-      tritone: Math.SQRT2, // cube diagonal / edge relation
-      fifth: 3 / 2,
-      minor6: 8 / 5,
-      major6: 5 / 3,
-      minor7: 9 / 5,
-      major7: 15 / 8,
-      octave: 2,
-      // Synergetics specials
-      tetra: 1, // vol 1
-      cube: 3, // vol 3 → as partial ratio folded
-      octa: 4,
-      rd: 6,
-      ve: 5 / 1, // 20/4 — VE/octa, or use 20 folded
-      phi: (1 + Math.sqrt(5)) / 2,
-      invPhi: (Math.sqrt(5) - 1) / 2,
-      sqrt2: Math.SQRT2,
-      sqrt3: Math.sqrt(3),
-      // 60° related: cos(60°)=1/2
-      cos60: 0.5,
-      // A module = 1/24
-      aMod: 1 / 24,
-    };
-    if (this.tuning === "equal") {
-      const eq = {
-        unison: 1,
-        minor2: Math.pow(2, 1 / 12),
-        major2: Math.pow(2, 2 / 12),
-        minor3: Math.pow(2, 3 / 12),
-        major3: Math.pow(2, 4 / 12),
-        fourth: Math.pow(2, 5 / 12),
-        tritone: Math.pow(2, 6 / 12),
-        fifth: Math.pow(2, 7 / 12),
-        minor6: Math.pow(2, 8 / 12),
-        major6: Math.pow(2, 9 / 12),
-        minor7: Math.pow(2, 10 / 12),
-        major7: Math.pow(2, 11 / 12),
-        octave: 2,
-        tetra: 1,
-        cube: Math.pow(2, Math.log2(3) % 1),
-        octa: 2,
-        rd: Math.pow(2, Math.log2(6) % 1),
-        ve: Math.pow(2, Math.log2(5) % 1),
-        phi: (1 + Math.sqrt(5)) / 2,
-        invPhi: (Math.sqrt(5) - 1) / 2,
-        sqrt2: Math.SQRT2,
-        sqrt3: Math.sqrt(3),
-        cos60: 0.5,
-        aMod: 1 / 24,
-      };
-      return eq[interval] ?? 1;
+  function writeAscii(view, offset, text) {
+    for (let index = 0; index < text.length; index += 1) {
+      view.setUint8(offset + index, text.charCodeAt(index));
     }
-    return just60[interval] ?? 1;
   }
 
-  /** Map tetravolume → frequency (logarithmic, rooted at rootHz for vol=1) */
-  volToHz(vol) {
-    if (vol <= 0) return this.rootHz;
-    // Each ×2 volume → +1 octave * scale factor; keep musical range
-    const octaves = Math.log2(vol) * 0.45;
-    return this.rootHz * Math.pow(2, octaves);
-  }
-
-  /** Map integer count (shell spheres) into a scale degree */
-  countToHz(n, scale = null) {
-    const sc =
-      scale ||
-      [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8, 2].map((r) => r);
-    // Fold n into scale with octave wrap using prime-ish steps
-    const deg = ((n % sc.length) + sc.length) % sc.length;
-    const oct = Math.floor(n / sc.length);
-    return this.rootHz * sc[deg] * Math.pow(2, oct * 0.5);
-  }
-
-  /**
-   * Play a brief tone with optional noise transient.
-   * kind: 'sine' | 'triangle' | 'square' | 'sawtooth' | 'tet' | 'noise'
-   */
-  tone(opts) {
-    if (!this.ctx) return;
-    const {
-      freq = 220,
-      dur = 0.25,
-      type = "sine",
-      when = this.ctx.currentTime,
-      gain = 0.15,
-      pan = 0,
-      attack = 0.01,
-      release = 0.12,
-      filterHz = 4000,
-      detune = 0,
-      harmonic = 0, // extra partials for "synergy"
-    } = opts;
-
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, when);
-    g.gain.linearRampToValueAtTime(gain, when + attack);
-    g.gain.exponentialRampToValueAtTime(0.0008, when + Math.max(dur, attack + 0.02));
-
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = "lowpass";
-    filt.frequency.setValueAtTime(filterHz, when);
-    filt.Q.value = 0.7;
-
-    let panner = null;
-    if (this.ctx.createStereoPanner) {
-      panner = this.ctx.createStereoPanner();
-      panner.pan.value = Math.max(-1, Math.min(1, pan));
+  function encodeWaveData(channelData, sampleRate, normalize) {
+    if (!Array.isArray(channelData) || channelData.length < 1 || channelData.length > 2) {
+      throw new Error("WAV encoder expects one or two channels");
+    }
+    const frameCount = channelData[0].length;
+    if (!channelData.every((channel) => channel.length === frameCount)) {
+      throw new Error("WAV channels must have equal frame counts");
     }
 
-    const connectOut = (node) => {
-      node.connect(filt);
-      filt.connect(g);
-      if (panner) {
-        g.connect(panner);
-        panner.connect(this.master);
-      } else {
-        g.connect(this.master);
+    let peak = 0;
+    channelData.forEach((channel) => {
+      for (let index = 0; index < channel.length; index += 1) {
+        peak = Math.max(peak, Math.abs(channel[index]));
       }
-    };
+    });
+    const scale = normalize && peak > 0 ? Math.min(4, 0.98 / peak) : 1;
+    const channels = channelData.length;
+    const bytesPerSample = 2;
+    const dataBytes = frameCount * channels * bytesPerSample;
+    const buffer = new ArrayBuffer(44 + dataBytes);
+    const view = new DataView(buffer);
 
-    if (type === "noise") {
-      const len = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
-      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      connectOut(src);
-      src.start(when);
-      src.stop(when + dur + 0.05);
-      return;
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + dataBytes, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * channels * bytesPerSample, true);
+    view.setUint16(32, channels * bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, dataBytes, true);
+
+    let offset = 44;
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      for (let channel = 0; channel < channels; channel += 1) {
+        const sample = clamp(channelData[channel][frame] * scale, -1, 1);
+        const integer = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+        view.setInt16(offset, integer, true);
+        offset += 2;
+      }
     }
 
-    // "tet" = four partials at tetrahedral-ish ratios (1, 5/4, 3/2, 2)
-    const partials =
-      type === "tet"
-        ? [
-            { r: 1, a: 1 },
-            { r: 5 / 4, a: 0.35 },
-            { r: 3 / 2, a: 0.28 },
-            { r: 2, a: 0.15 },
-          ]
-        : type === "ve"
-          ? [
-              { r: 1, a: 1 },
-              { r: 1.2, a: 0.25 }, // 6/5-ish
-              { r: Math.SQRT2, a: 0.2 },
-              { r: 2, a: 0.12 },
-              { r: 2.5, a: 0.08 }, // 5/2 related to VE 20/8
-            ]
-          : [{ r: 1, a: 1 }];
+    return new Uint8Array(buffer);
+  }
 
-    const oscType = type === "tet" || type === "ve" ? "sine" : type;
+  function createOutputBus(context, destination, masterGain, withAnalyser) {
+    const input = context.createGain();
+    const compressor = context.createDynamicsCompressor();
+    const master = context.createGain();
+    master.gain.value = clamp(masterGain, 0, 1);
+    compressor.threshold.value = -16;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 5;
+    compressor.attack.value = 0.005;
+    compressor.release.value = 0.18;
 
-    for (const p of partials) {
-      const osc = this.ctx.createOscillator();
-      osc.type = oscType;
-      osc.frequency.setValueAtTime(freq * p.r, when);
-      if (detune) osc.detune.setValueAtTime(detune, when);
-      const pg = this.ctx.createGain();
-      pg.gain.value = p.a;
-      osc.connect(pg);
-      connectOut(pg);
-      osc.start(when);
-      osc.stop(when + dur + 0.08);
+    input.connect(compressor);
+    compressor.connect(master);
+
+    let analyser = null;
+    if (withAnalyser) {
+      analyser = context.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.78;
+      master.connect(analyser);
+      analyser.connect(destination);
+    } else {
+      master.connect(destination);
     }
 
-    // Optional synergy partial (whole not predicted by parts)
-    if (harmonic > 0) {
-      const osc = this.ctx.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(freq * harmonic, when);
-      const pg = this.ctx.createGain();
-      pg.gain.value = 0.08;
-      osc.connect(pg);
-      connectOut(pg);
-      osc.start(when);
-      osc.stop(when + dur + 0.05);
+    return { input, compressor, master, analyser };
+  }
+
+  function scheduleEvent(context, destination, event, startTime, bpm, nodeSink) {
+    const eventStart = startTime + beatsToSeconds(event.time, bpm);
+    const eventDuration = Math.max(0.02, beatsToSeconds(event.duration, bpm));
+    const attack = Math.min(eventDuration * 0.45, Math.max(0.002, event.attack));
+    const release = Math.min(eventDuration * 0.65, Math.max(0.008, event.release));
+    const sustainEnd = Math.max(eventStart + attack, eventStart + eventDuration - release);
+    const stopTime = eventStart + eventDuration + 0.025;
+
+    const oscillator = context.createOscillator();
+    const filter = context.createBiquadFilter();
+    const envelope = context.createGain();
+    const panner =
+      typeof context.createStereoPanner === "function" ? context.createStereoPanner() : null;
+
+    oscillator.type = ["sine", "triangle", "square", "sawtooth"].includes(event.waveform)
+      ? event.waveform
+      : "sine";
+    oscillator.frequency.setValueAtTime(event.frequency, eventStart);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(event.filterHz, eventStart);
+    filter.Q.setValueAtTime(0.72, eventStart);
+
+    envelope.gain.setValueAtTime(0.0001, eventStart);
+    envelope.gain.exponentialRampToValueAtTime(
+      Math.max(0.0002, event.gain),
+      eventStart + attack
+    );
+    envelope.gain.setValueAtTime(Math.max(0.0002, event.gain * 0.82), sustainEnd);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, eventStart + eventDuration);
+
+    oscillator.connect(filter);
+    filter.connect(envelope);
+    if (panner) {
+      panner.pan.setValueAtTime(event.pan, eventStart);
+      envelope.connect(panner);
+      panner.connect(destination);
+    } else {
+      envelope.connect(destination);
+    }
+
+    oscillator.start(eventStart);
+    oscillator.stop(stopTime);
+    if (nodeSink) {
+      nodeSink.push(oscillator);
+      oscillator.addEventListener("ended", () => {
+        const index = nodeSink.indexOf(oscillator);
+        if (index >= 0) nodeSink.splice(index, 1);
+      });
     }
   }
 
-  /** Chord from array of frequencies */
-  chord(freqs, opts = {}) {
-    const when = opts.when ?? this.ctx.currentTime;
-    freqs.forEach((f, i) => {
-      this.tone({
-        ...opts,
-        freq: f,
-        when: when + i * (opts.spread || 0),
-        pan: opts.panSpread ? (i / Math.max(1, freqs.length - 1)) * 2 - 1 : opts.pan || 0,
-        gain: (opts.gain || 0.12) / Math.sqrt(freqs.length),
-      });
+  function scheduleScoreCycle(context, destination, score, cycleStart, nodeSink) {
+    score.events.forEach((event) => {
+      scheduleEvent(context, destination, event, cycleStart, score.params.bpm, nodeSink);
     });
   }
 
-  /** Start scheduler for a lab mode generator */
-  start(modeName, generator, params = {}) {
-    this.stop();
-    this.mode = modeName;
-    this.params = params;
-    this.generator = generator;
-    this.step = 0;
-    this.running = true;
-    this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this._tick();
-  }
-
-  _tick() {
-    if (!this.running) return;
-    const beat = 60 / this.bpm;
-    while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAhead) {
-      if (this.generator) {
-        this.generator(this, this.nextNoteTime, this.step, this.params, beat);
-      }
-      if (this.onStep) {
-        try {
-          this.onStep(this.step, this.params);
-        } catch (_) {}
-      }
-      this.nextNoteTime += beat * (this.params.stepDiv || 0.25);
-      this.step++;
+  class SynSonAudio {
+    constructor() {
+      this.context = null;
+      this.bus = null;
+      this.running = false;
+      this.score = null;
+      this.nodes = [];
+      this.timer = null;
+      this.liveStart = 0;
+      this.nextCycleStart = 0;
+      this.playToken = 0;
     }
-    this.schedId = requestAnimationFrame(() => this._tick());
+
+    get supported() {
+      return Boolean(AudioContextCtor);
+    }
+
+    get offlineSupported() {
+      return Boolean(OfflineAudioContextCtor);
+    }
+
+    async ensureContext(gain) {
+      if (!AudioContextCtor) {
+        throw new Error("Web Audio is not supported by this browser");
+      }
+      if (!this.context) {
+        this.context = new AudioContextCtor();
+        this.bus = createOutputBus(this.context, this.context.destination, gain, true);
+      }
+      this.bus.master.gain.setTargetAtTime(
+        clamp(gain, 0, 1),
+        this.context.currentTime,
+        0.015
+      );
+      if (this.context.state === "suspended") {
+        await this.context.resume();
+      }
+    }
+
+    async play(score) {
+      await this.ensureContext(score.params.gain);
+      this.stop();
+      this.score = score;
+      this.running = true;
+      this.playToken += 1;
+      const token = this.playToken;
+      this.liveStart = this.context.currentTime + 0.075;
+      this.nextCycleStart = this.liveStart;
+
+      const scheduleNext = () => {
+        if (!this.running || token !== this.playToken) return;
+        const now = this.context.currentTime;
+        if (this.nextCycleStart < now + 0.025) {
+          this.nextCycleStart = now + 0.05;
+          if (this.liveStart < now - 0.25) this.liveStart = this.nextCycleStart;
+        }
+        scheduleScoreCycle(
+          this.context,
+          this.bus.input,
+          score,
+          this.nextCycleStart,
+          this.nodes
+        );
+        const cycleSeconds = beatsToSeconds(score.durationBeats, score.params.bpm);
+        this.nextCycleStart += cycleSeconds;
+        const delayMs = Math.max(
+          40,
+          (this.nextCycleStart - this.context.currentTime - Math.min(0.35, cycleSeconds / 4)) *
+            1000
+        );
+        this.timer = setTimeout(scheduleNext, delayMs);
+      };
+
+      scheduleNext();
+    }
+
+    stop() {
+      this.running = false;
+      this.playToken += 1;
+      if (this.timer) clearTimeout(this.timer);
+      this.timer = null;
+      [...this.nodes].forEach((node) => {
+        try {
+          node.stop();
+        } catch (_error) {
+          // An oscillator that has already stopped is harmless.
+        }
+      });
+      this.nodes = [];
+    }
+
+    setGain(value) {
+      if (!this.bus || !this.context) return;
+      this.bus.master.gain.setTargetAtTime(
+        clamp(value, 0, 1),
+        this.context.currentTime,
+        0.015
+      );
+    }
+
+    positionBeats() {
+      if (!this.running || !this.context || !this.score) return 0;
+      const elapsedSeconds = Math.max(0, this.context.currentTime - this.liveStart);
+      const elapsedBeats = (elapsedSeconds * this.score.params.bpm) / 60;
+      return elapsedBeats % this.score.durationBeats;
+    }
+
+    activeEvent() {
+      if (!this.score || !this.running) return null;
+      const beat = this.positionBeats();
+      let candidate = null;
+      for (const event of this.score.events) {
+        if (event.time > beat) break;
+        if (beat <= event.time + Math.max(event.duration, 0.16)) candidate = event;
+      }
+      return candidate;
+    }
+
+    waveform(target) {
+      if (!this.bus || !this.bus.analyser) return null;
+      const array = target || new Uint8Array(this.bus.analyser.fftSize);
+      this.bus.analyser.getByteTimeDomainData(array);
+      return array;
+    }
+
+    spectrum(target) {
+      if (!this.bus || !this.bus.analyser) return null;
+      const array = target || new Uint8Array(this.bus.analyser.frequencyBinCount);
+      this.bus.analyser.getByteFrequencyData(array);
+      return array;
+    }
+
+    async renderWav(score, options, onProgress) {
+      if (!OfflineAudioContextCtor) {
+        throw new Error("OfflineAudioContext is not supported by this browser");
+      }
+      const settings = Object.assign(
+        { bars: 8, sampleRate: 48000, normalize: true },
+        options || {}
+      );
+      const bars = clamp(Number.parseInt(settings.bars, 10) || 8, 1, 64);
+      const sampleRate = [44100, 48000].includes(Number(settings.sampleRate))
+        ? Number(settings.sampleRate)
+        : 48000;
+      const totalBeats = bars * 4;
+      const totalSeconds = beatsToSeconds(totalBeats, score.params.bpm);
+      const tailSeconds = 0.4;
+      const frameCount = Math.ceil((totalSeconds + tailSeconds) * sampleRate);
+      const context = new OfflineAudioContextCtor(2, frameCount, sampleRate);
+      const bus = createOutputBus(context, context.destination, score.params.gain, false);
+      const cycleSeconds = beatsToSeconds(score.durationBeats, score.params.bpm);
+      const cycles = Math.ceil(totalBeats / score.durationBeats);
+
+      if (onProgress) onProgress({ phase: "schedule", progress: 0.08 });
+      for (let cycle = 0; cycle < cycles; cycle += 1) {
+        const beatOffset = cycle * score.durationBeats;
+        score.events.forEach((event) => {
+          if (beatOffset + event.time >= totalBeats) return;
+          scheduleEvent(
+            context,
+            bus.input,
+            event,
+            cycle * cycleSeconds,
+            score.params.bpm,
+            null
+          );
+        });
+      }
+
+      if (onProgress) onProgress({ phase: "render", progress: 0.25 });
+      const rendered = await context.startRendering();
+      if (onProgress) onProgress({ phase: "encode", progress: 0.82 });
+      const channels = [];
+      for (let index = 0; index < rendered.numberOfChannels; index += 1) {
+        channels.push(rendered.getChannelData(index));
+      }
+      const wav = encodeWaveData(channels, sampleRate, Boolean(settings.normalize));
+      if (onProgress) onProgress({ phase: "done", progress: 1 });
+
+      return {
+        bytes: wav,
+        blob: new Blob([wav], { type: "audio/wav" }),
+        sampleRate,
+        channels: rendered.numberOfChannels,
+        frames: rendered.length,
+        seconds: rendered.duration,
+        bars,
+      };
+    }
   }
 
-  stop() {
-    this.running = false;
-    if (this.schedId) cancelAnimationFrame(this.schedId);
-    this.schedId = null;
-    this.mode = null;
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
-  getWaveform() {
-    if (!this.analyser) return null;
-    const n = this.analyser.fftSize;
-    const data = new Uint8Array(n);
-    this.analyser.getByteTimeDomainData(data);
-    return data;
-  }
+  const API = Object.freeze({
+    SynSonAudio,
+    encodeWaveData,
+    beatsToSeconds,
+    downloadBlob,
+  });
 
-  getSpectrum() {
-    if (!this.analyser) return null;
-    const n = this.analyser.frequencyBinCount;
-    const data = new Uint8Array(n);
-    this.analyser.getByteFrequencyData(data);
-    return data;
+  root.SynSonAudioAPI = API;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = API;
   }
-}
-
-window.SynergeticsAudio = SynergeticsAudio;
+})(typeof window !== "undefined" ? window : globalThis);
