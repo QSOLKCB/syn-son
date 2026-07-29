@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Synergetics Sonification Lab</title>
+    <meta
+      name="description"
+      content="Offline sonification laboratory for Buckminster Fuller's Synergetics — tetravolumes, frequency shells, vector equilibrium, and more mapped to sound from primary sources."
+    />
+    <link rel="stylesheet" href="css/lab.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <h1>Synergetics <span>Sonification Lab</span></h1>
+        <p id="source-meta">R. Buckminster Fuller — primary geometric sources</p>
+      </div>
+      <div class="header-actions">
+        <span class="kbd">Space</span>
+        <span style="color: var(--muted); font-size: 0.8rem">play / stop</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Left: lab modes -->
+      <aside class="panel">
+        <h2>Laboratories</h2>
+        <nav id="lab-nav" aria-label="Sonification labs"></nav>
+
+        <div style="margin-top: 1.25rem">
+          <h2>Core formulas</h2>
+          <div class="formula">
+            X = 2 N F² + 2
+            <small>§223.03 · N ∈ {1,2,3,5} · F = edge frequency</small>
+          </div>
+          <div class="formula">
+            Layer = 10 F² + 2
+            <small>§223.21 · VE closest-packed shell</small>
+          </div>
+          <div class="formula">
+            nS + 720° = 360° X
+            <small>§224.00 · Angular topology</small>
+          </div>
+          <div class="formula">
+            Tet = 1 · Cube = 3 · Octa = 4 · RD = 6 · VE = 20
+            <small>§223.66 / concentric hierarchy volumes</small>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center: stage -->
+      <main class="panel">
+        <div class="stage-header">
+          <h2 id="lab-title">Concentric Hierarchy</h2>
+          <p class="subtitle" id="lab-subtitle">Tetravolumes → pitch &amp; chord</p>
+          <p class="blurb" id="lab-blurb"></p>
+          <p class="cite" id="lab-cite"></p>
+        </div>
+
+        <div class="viz-wrap">
+          <canvas id="viz" aria-label="Geometry visualization"></canvas>
+        </div>
+        <div class="wave-wrap">
+          <canvas id="wave" aria-label="Waveform and spectrum"></canvas>
+        </div>
+
+        <div class="status" id="status-label" role="status">Ready — press Play</div>
+
+        <div class="controls">
+          <div class="transport">
+            <button type="button" class="btn btn-primary" id="btn-play">Play</button>
+            <button type="button" class="btn" id="btn-stop">Stop</button>
+            <button type="button" class="btn btn-ghost" id="btn-strike" title="One-shot random hierarchy strike">
+              Strike
+            </button>
+          </div>
+
+          <label class="ctrl">
+            <span>Tempo <em id="bpm-val">90</em> bpm</span>
+            <input type="range" id="bpm" min="40" max="160" value="90" />
+          </label>
+
+          <label class="ctrl">
+            <span>Gain <em id="gain-val">0.45</em></span>
+            <input type="range" id="gain" min="0" max="1" step="0.01" value="0.45" />
+          </label>
+
+          <label class="ctrl">
+            <span>Root <em id="root-hz-val">110</em> Hz</span>
+            <input type="range" id="root-hz" min="55" max="220" step="1" value="110" />
+          </label>
+
+          <label class="ctrl">
+            <span>Step</span>
+            <select id="step-div">
+              <option value="0.5">½ beat</option>
+              <option value="0.25" selected>¼ beat</option>
+              <option value="0.125">⅛ beat</option>
+              <option value="1">1 beat</option>
+            </select>
+          </label>
+
+          <label class="ctrl">
+            <span>Tuning</span>
+            <select id="tuning">
+              <option value="just60" selected>Just / 60° ratios</option>
+              <option value="equal">Equal temperament</option>
+            </select>
+          </label>
+
+          <div id="extra-controls"></div>
+        </div>
+      </main>
+
+      <!-- Right: sources -->
+      <aside class="panel">
+        <h2>From the source</h2>
+        <div class="quote-box">
+          <blockquote id="quote-text">
+            “Size and time are synonymous. Frequency and size are the same phenomenon.”
+          </blockquote>
+          <footer id="quote-cite">— Synergetics §528.00</footer>
+        </div>
+
+        <div class="def-box">
+          <strong>Definition §200.01</strong>
+          A system of mensuration employing 60-degree vectorial coordination comprehensive
+          to both physics and chemistry, and to both arithmetic and geometry, in rational
+          whole numbers.
+        </div>
+
+        <h2>How sonification maps</h2>
+        <ul style="margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.82rem">
+          <li><strong style="color: var(--text)">Volume → pitch</strong> — log₂(tetravolume) scales Hz from unit tet</li>
+          <li><strong style="color: var(--text)">Frequency F → tempo layer</strong> — shells step outward</li>
+          <li><strong style="color: var(--text)">Prime N → timbre family</strong> — 1 tet · 2 octa · 3 cube · 5 VE</li>
+          <li><strong style="color: var(--text)">720° excess → spectral marker</strong> — angular topology constant</li>
+          <li><strong style="color: var(--text)">A/B modules → 1/24 ticks</strong> — quanta assemble wholes</li>
+          <li><strong style="color: var(--text)">Chord factor → interval</strong> — 2 sin(θ/2) as frequency ratio</li>
+        </ul>
+
+        <div class="formula" style="margin-top: 1rem">
+          Offline · Web Audio API · no CDN
+          <small>Open index.html in any modern browser</small>
+        </div>
+      </aside>
+    </div>
+
+    <section class="table-section">
+      <div class="panel">
+        <h2>Concentric hierarchy (tetra = volumetric unity)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Tetravolume</th>
+              <th>V</th>
+              <th>E</th>
+              <th>Faces</th>
+              <th>Prime N</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="hierarchy-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>
+        Geometric constants, formulas, and short attributed quotations from
+        <em>Synergetics: Explorations in the Geometry of Thinking</em> by R. Buckminster Fuller
+        (with E.J. Applewhite), Macmillan 1975/1979. Section numbers refer to the online edition
+        at
+        <a href="http://www.rwgrayprojects.com/synergetics/" rel="noopener">rwgrayprojects.com/synergetics</a>
+        (hosted with permission of the Estate). This lab is an educational sonification instrument —
+        not a substitute for the primary text. Full prose remains under copyright.
+      </p>
+      <p style="margin-top: 0.5rem">
+        Sonification design: tetravolume → log pitch · X=2NF²+2 → shell rhythms · jitterbug t → filter &amp; dual voice ·
+        A/B 1/24 → quanta · angular 720° → beats · chord factors → intervals.
+      </p>
+    </footer>
+
+    <script src="js/primary-sources.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/geometry.js"></script>
+    <script src="js/labs.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
