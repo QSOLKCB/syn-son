@@ -1,0 +1,465 @@
+/* Synergetics Sonification Lab — offline styles */
+
+:root {
+  --bg: #0b1220;
+  --bg-elev: #111827;
+  --bg-panel: #0f172a;
+  --border: rgba(148, 163, 184, 0.18);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --accent: #38bdf8;
+  --accent-2: #f472b6;
+  --accent-3: #fbbf24;
+  --ve: #f87171;
+  --ok: #4ade80;
+  --danger: #fb7185;
+  --radius: 12px;
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100%;
+  line-height: 1.45;
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(56, 189, 248, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(244, 114, 182, 0.1), transparent),
+    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(251, 191, 36, 0.06), transparent);
+  background-attachment: fixed;
+}
+
+/* Header */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.brand h1 span {
+  color: var(--accent);
+}
+
+.brand p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 1rem;
+  padding: 1rem 1.25rem 2rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panels */
+.panel {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  font-weight: 600;
+}
+
+/* Lab nav */
+#lab-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lab-tab {
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  transition: background 0.15s, border-color 0.15s;
+  font: inherit;
+}
+
+.lab-tab:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: var(--border);
+}
+
+.lab-tab.active {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.tab-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tab-cite {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent-3);
+  opacity: 0.85;
+}
+
+/* Main stage */
+.stage-header {
+  margin-bottom: 0.75rem;
+}
+
+.stage-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.stage-header .subtitle {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.stage-header .blurb {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.4rem 0 0;
+  max-width: 62ch;
+}
+
+.stage-header .cite {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--accent-3);
+  margin-top: 0.35rem;
+}
+
+.viz-wrap {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, #0a1628 0%, #0f172a 50%, #1a1030 100%);
+  aspect-ratio: 16 / 10;
+  min-height: 280px;
+}
+
+#viz {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.wave-wrap {
+  margin-top: 0.65rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  height: 72px;
+  background: #0a0f1a;
+}
+
+#wave {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.status {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: #bae6fd;
+  min-height: 2.5rem;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-top: 0.85rem;
+}
+
+.ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  min-width: 100px;
+}
+
+.ctrl span em {
+  font-style: normal;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.ctrl input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+
+.ctrl select {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+}
+
+.btn:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  border-color: transparent;
+  color: white;
+}
+
+.btn-primary.active {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.45);
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.transport {
+  display: flex;
+  gap: 0.4rem;
+  margin-right: 0.5rem;
+}
+
+/* Side panels */
+.quote-box {
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: rgba(244, 114, 182, 0.06);
+  border: 1px solid rgba(244, 114, 182, 0.18);
+  margin-bottom: 0.85rem;
+}
+
+.quote-box blockquote {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #fce7f3;
+  font-style: italic;
+}
+
+.quote-box footer {
+  margin-top: 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--accent-2);
+}
+
+.def-box {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.def-box strong {
+  color: var(--text);
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.formula {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  margin: 0.4rem 0 0.85rem;
+  color: var(--accent-3);
+}
+
+.formula small {
+  display: block;
+  color: var(--faint);
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+}
+
+/* Table */
+.table-section {
+  max-width: 1440px;
+  margin: 0 auto 2rem;
+  padding: 0 1.25rem;
+}
+
+.table-section .panel {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--faint);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+td.num {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+td.cite {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--accent-3);
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+/* Footer */
+.site-footer {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+  color: var(--faint);
+  font-size: 0.78rem;
+}
+
+.site-footer a {
+  color: var(--accent);
+}
+
+.kbd {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+
+#extra-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+#extra-controls:empty {
+  display: none;
+}
