@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use Syn-Son in research, teaching, or creative work, please cite this software."
+title: "Syn-Son: History of Sonification in Synergetics"
+type: software
+version: 2.0.0
+date-released: 2026-07-29
+authors:
+  - family-names: Slade
+    given-names: Trent
+    affiliation: QSOL-IMC
+repository-code: "https://github.com/QSOLKCB/syn-son"
+url: "https://qsolkcb.github.io/syn-son/"
+license: MIT
+abstract: >-
+  A zero-install historical archive, deterministic visual score, Web Audio
+  instrument, and in-browser WAV renderer that keeps Synergetics source
+  quantities separate from contemporary sonification mappings.
+keywords:
+  - sonification
+  - synergetics
+  - Buckminster Fuller
+  - Web Audio
+  - digital preservation
+  - deterministic audio
